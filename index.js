@@ -12,11 +12,75 @@ app.get("/", (req, res) => {
 	res.send("This service is up and running...");
 });
 
+let users = [];
+
+const addUser = (userId, socketId) => {
+    !users.some((user) => user.userId === userId) &&
+    users.push({ userId, socketId });
+    console.log(users);
+};
+
+const removeUser = (socketId) => {
+    users = users.filter((user) => user.socketId !== socketId);
+};
+
+const getUser = (userId) => {
+    return users.find((user) => user.userId === userId);
+};
+
+
+
+
 io.on("connection", (socket) => {
 
  console.log("a user connected.");
 
-	socket.on("fetch_response", (data) => {
+    //take userId and socketId from user
+    socket.on("addUser", (idUsu) => {
+        addUser(idUsu, socket.id);
+        io.emit("getUsers", users);
+    });
+
+    //send and get message
+    socket.on("sendMessage", ({ userId, message, idUsu }) => {
+        const user = getUser(userId);
+
+        console.log(user.socketId);
+        io.to(user.socketId).emit("getMessage", {
+            idUsu,
+            message,
+
+        });
+    });
+
+    //when disconnect
+    socket.on("disconnect", () => {
+        console.log("a user disconnected!");
+        removeUser(socket.id);
+        io.emit("getUsers", users);
+    });
+
+
+
+
+});
+
+/*
+//send and get message
+  socket.on("sendMessage", ({ senderId, receiverId, text }) => {
+    const user = getUser(receiverId);
+    io.to(user.socketId).emit("getMessage", {
+      senderId,
+      text,
+    });
+  });*/
+
+
+
+
+
+/*
+socket.on("fetch_response", (data) => {
 		const { userId, sender2, content } = data;
 	console.log(userId,sender2);
 		const responseInterval = getResponseInterval(1000, 4000);
@@ -33,14 +97,4 @@ io.on("connection", (socket) => {
 			}, responseInterval);
 		}, 1500);
 	});
-});
-
-/*
-//send and get message
-  socket.on("sendMessage", ({ senderId, receiverId, text }) => {
-    const user = getUser(receiverId);
-    io.to(user.socketId).emit("getMessage", {
-      senderId,
-      text,
-    });
-  });*/
+* */
